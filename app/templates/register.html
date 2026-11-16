@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+
+{% block title %}Create Account | ChatPulse Real-Time Chat{% endblock %}
+
+{% block content %}
+<div class="auth-wrapper">
+    <!-- Background Glows -->
+    <div class="auth-glow glow-1"></div>
+    <div class="auth-glow glow-2"></div>
+
+    <div class="auth-card animate-fade-in">
+        <div class="auth-card-header">
+            <div class="auth-header-top">
+                <a href="{{ url_for('chat.index') }}" class="back-link">
+                    <i class="fa-solid fa-arrow-left"></i> Home
+                </a>
+                <button class="theme-toggle-btn small" onclick="toggleTheme()" title="Toggle Theme">
+                    <i id="theme-toggle-icon" class="fa-solid fa-moon"></i>
+                </button>
+            </div>
+            <div class="auth-brand">
+                <div class="logo-icon large">
+                    <i class="fa-solid fa-user-plus"></i>
+                </div>
+                <h2>Create Your Account</h2>
+                <p>Join ChatPulse and connect instantly in real-time rooms and direct messages.</p>
+            </div>
+        </div>
+
+        <form action="{{ url_for('auth.register') }}" method="POST" class="auth-form" id="register-form">
+            <div class="form-group">
+                <div class="form-label-row">
+                    <label for="username">Username</label>
+                    <span id="username-status" class="field-status"></span>
+                </div>
+                <div class="input-with-icon">
+                    <i class="fa-solid fa-at input-icon"></i>
+                    <input 
+                        type="text" 
+                        id="username" 
+                        name="username" 
+                        class="form-control" 
+                        placeholder="Choose a unique username"
+                        value="{{ username or '' }}" 
+                        required 
+                        autocomplete="username"
+                        minlength="3"
+                        maxlength="30"
+                    >
+                </div>
+                <small class="form-hint">3-30 characters: letters, numbers, and underscores.</small>
+            </div>
+
+            <div class="form-group">
+                <label for="email">Email Address</label>
+                <div class="input-with-icon">
+                    <i class="fa-solid fa-envelope input-icon"></i>
+                    <input 
+                        type="email" 
+                        id="email" 
+                        name="email" 
+                        class="form-control" 
+                        placeholder="you@example.com"
+                        value="{{ email or '' }}" 
+                        required 
+                        autocomplete="email"
+                    >
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password</label>
+                <div class="input-with-icon">
+                    <i class="fa-solid fa-lock input-icon"></i>
+                    <input 
+                        type="password" 
+                        id="password" 
+                        name="password" 
+                        class="form-control" 
+                        placeholder="Minimum 6 characters" 
+                        required
+                        minlength="6"
+                    >
+                    <button type="button" class="password-toggle" onclick="togglePasswordVisibility('password', this)">
+                        <i class="fa-regular fa-eye"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="confirm_password">Confirm Password</label>
+                <div class="input-with-icon">
+                    <i class="fa-solid fa-shield-check input-icon"></i>
+                    <input 
+                        type="password" 
+                        id="confirm_password" 
+                        name="confirm_password" 
+                        class="form-control" 
+                        placeholder="Re-type your password" 
+                        required
+                        minlength="6"
+                    >
+                    <button type="button" class="password-toggle" onclick="togglePasswordVisibility('confirm_password', this)">
+                        <i class="fa-regular fa-eye"></i>
+                    </button>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block btn-lg" id="submit-btn">
+                <i class="fa-solid fa-paper-plane"></i> Register Account
+            </button>
+        </form>
+
+        <div class="auth-card-footer">
+            <p>Already have an account? <a href="{{ url_for('auth.login') }}" class="link-highlight">Sign In</a></p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function togglePasswordVisibility(fieldId, btn) {
+        const input = document.getElementById(fieldId);
+        const icon = btn.querySelector('i');
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.className = 'fa-regular fa-eye-slash';
+        } else {
+            input.type = 'password';
+            icon.className = 'fa-regular fa-eye';
+        }
+    }
+
+    // Live asynchronous check for username availability
+    const usernameInput = document.getElementById('username');
+    const statusSpan = document.getElementById('username-status');
+    let debounceTimer;
+
+    usernameInput.addEventListener('input', () => {
+        clearTimeout(debounceTimer);
+        const val = usernameInput.value.trim();
+        if (val.length < 3) {
+            statusSpan.textContent = '';
+            return;
+        }
+
+        debounceTimer = setTimeout(() => {
+            fetch(`/auth/api/check-username?username=${encodeURIComponent(val)}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.available) {
+                        statusSpan.textContent = '✓ Available';
+                        statusSpan.className = 'field-status text-success';
+                    } else {
+                        statusSpan.textContent = '✗ ' + data.message;
+                        statusSpan.className = 'field-status text-danger';
+                    }
+                })
+                .catch(() => {});
+        }, 400);
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+
+{% block title %}Real-Time Chat Application | Modern WebSocket Messaging{% endblock %}
+
+{% block content %}
+<div class="landing-page">
+    <!-- Navbar -->
+    <header class="landing-header">
+        <div class="landing-nav-container">
+            <a href="{{ url_for('chat.index') }}" class="brand-logo">
+                <div class="logo-icon">
+                    <i class="fa-solid fa-bolt-lightning"></i>
+                </div>
+                <span>ChatPulse</span>
+            </a>
+
+            <div class="nav-actions">
+                <button class="theme-toggle-btn" onclick="toggleTheme()" title="Toggle Dark/Light Mode">
+                    <i id="theme-toggle-icon" class="fa-solid fa-moon"></i>
+                </button>
+                {% if current_user.is_authenticated %}
+                    <a href="{{ url_for('chat.dashboard') }}" class="btn btn-primary">
+                        <i class="fa-solid fa-comments"></i> Open Dashboard
+                    </a>
+                {% else %}
+                    <a href="{{ url_for('auth.login') }}" class="btn btn-ghost">Log In</a>
+                    <a href="{{ url_for('auth.register') }}" class="btn btn-primary">Get Started</a>
+                {% endif %}
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero-section">
+        <div class="hero-content">
+            <div class="hero-badge">
+                <span class="pulse-dot"></span>
+                <span>Powered by Flask-SocketIO & Modern WebSockets</span>
+            </div>
+            <h1 class="hero-title">
+                Experience Lightning-Fast <span class="text-gradient">Real-Time Messaging</span>
+            </h1>
+            <p class="hero-subtitle">
+                A modern, full-stack real-time chat platform with instant 1-to-1 direct messaging, public chat channels, live typing indicators, and online presence tracking.
+            </p>
+            <div class="hero-buttons">
+                {% if current_user.is_authenticated %}
+                    <a href="{{ url_for('chat.dashboard') }}" class="btn btn-primary btn-lg">
+                        <i class="fa-solid fa-comments"></i> Go to Chat Dashboard
+                    </a>
+                {% else %}
+                    <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-lg">
+                        <i class="fa-solid fa-user-plus"></i> Create Free Account
+                    </a>
+                    <a href="{{ url_for('auth.login') }}" class="btn btn-outline btn-lg">
+                        <i class="fa-solid fa-right-to-bracket"></i> Sign In
+                    </a>
+                {% endif %}
+            </div>
+
+            <!-- Chat Preview Mockup -->
+            <div class="preview-wrapper">
+                <div class="chat-preview-card">
+                    <div class="preview-header">
+                        <div class="preview-dots">
+                            <span class="dot red"></span>
+                            <span class="dot yellow"></span>
+                            <span class="dot green"></span>
+                        </div>
+                        <div class="preview-title">
+                            <i class="fa-solid fa-hashtag text-primary"></i> general-community
+                        </div>
+                        <div class="preview-status">
+                            <span class="status-indicator online"></span> 12 Online
+                        </div>
+                    </div>
+                    <div class="preview-messages">
+                        <div class="preview-bubble received">
+                            <div class="bubble-avatar">
+                                <img src="https://ui-avatars.com/api/?name=Alex+Carter&background=6366f1&color=fff" alt="Alex">
+                            </div>
+                            <div class="bubble-body">
+                                <span class="sender-name">Alex Carter</span>
+                                <p>Welcome to ChatPulse! Real-time messaging with Flask-SocketIO is blazing fast 🚀</p>
+                                <span class="bubble-time">10:42 AM</span>
+                            </div>
+                        </div>
+
+                        <div class="preview-bubble sent">
+                            <div class="bubble-body">
+                                <p>Agreed! The typing indicators and instant room synchronization work flawlessly.</p>
+                                <span class="bubble-time">10:43 AM <i class="fa-solid fa-check-double text-accent"></i></span>
+                            </div>
+                        </div>
+
+                        <div class="preview-typing">
+                            <span class="typing-text">Alex Carter is typing</span>
+                            <div class="typing-dots">
+                                <span></span><span></span><span></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features-section">
+        <div class="section-header">
+            <h2 class="section-title">Built with High-Performance Architecture</h2>
+            <p class="section-subtitle">Engineered with modern full-stack best practices for responsive, seamless real-time communication.</p>
+        </div>
+
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon bg-indigo">
+                    <i class="fa-solid fa-bolt"></i>
+                </div>
+                <h3>Bidirectional WebSockets</h3>
+                <p>Full-duplex real-time events powered by Flask-SocketIO. Messages arrive instantly without page refreshes or polling.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon bg-emerald">
+                    <i class="fa-solid fa-comments"></i>
+                </div>
+                <h3>1-to-1 & Group Rooms</h3>
+                <p>Switch seamlessly between private direct messages and collaborative community chat rooms with full room history.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon bg-cyan">
+                    <i class="fa-solid fa-keyboard"></i>
+                </div>
+                <h3>Live Typing Indicators</h3>
+                <p>Interactive real-time typing indicators inform you immediately when your conversation partner is composing a reply.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon bg-amber">
+                    <i class="fa-solid fa-circle-dot"></i>
+                </div>
+                <h3>Live Online Presence</h3>
+                <p>Dynamic detection of connected users. See active online dots and last-seen timestamps updated on the fly.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon bg-purple">
+                    <i class="fa-solid fa-database"></i>
+                </div>
+                <h3>Persistent History</h3>
+                <p>Structured SQLite & SQLAlchemy persistence ensures all conversations, memberships, and read receipts are safely stored.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon bg-rose">
+                    <i class="fa-solid fa-shield-halved"></i>
+                </div>
+                <h3>Enterprise Security</h3>
+                <p>Werkzeug cryptographic password hashing, strict input sanitization, CSRF defenses, and authentication-checked socket handshakes.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="landing-footer">
+        <div class="footer-container">
+            <div class="footer-brand">
+                <div class="brand-logo">
+                    <div class="logo-icon"><i class="fa-solid fa-bolt-lightning"></i></div>
+                    <span>ChatPulse</span>
+                </div>
+                <p>Full-Stack Real-Time Chat Application with Flask-SocketIO & SQLite.</p>
+            </div>
+            <div class="footer-author">
+                <p>Developed with ❤️ by <strong>Vidya Ratan Wakle</strong></p>
+                <p class="copyright">© 2026 ChatPulse. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+</div>
+{% endblock %}

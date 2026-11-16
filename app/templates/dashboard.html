@@ -1,0 +1,291 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard | ChatPulse Real-Time Chat{% endblock %}
+
+{% block content %}
+<div class="chat-dashboard-layout" id="dashboard-layout">
+    <!-- Hidden input holding current user ID for JS -->
+    <input type="hidden" id="current-user-id" value="{{ user.id }}">
+    <input type="hidden" id="current-username" value="{{ user.username }}">
+    <input type="hidden" id="current-user-avatar" value="{{ user.get_avatar_url() }}">
+    <input type="hidden" id="default-room-id" value="{{ default_room_id }}">
+
+    <!-- ==================== LEFT SIDEBAR ==================== -->
+    <aside class="chat-sidebar" id="chat-sidebar">
+        <!-- Sidebar Header: Profile & Controls -->
+        <div class="sidebar-header">
+            <div class="user-profile-preview" onclick="window.location.href='{{ url_for('auth.profile') }}'" title="View Profile">
+                <div class="avatar-container">
+                    <img src="{{ user.get_avatar_url() }}" alt="{{ user.username }}" class="user-avatar" id="my-avatar">
+                    <span class="status-indicator online" id="my-status-dot"></span>
+                </div>
+                <div class="user-details">
+                    <span class="user-name">{{ user.username }}</span>
+                    <span class="user-status-text">Online</span>
+                </div>
+            </div>
+
+            <div class="sidebar-actions">
+                <button class="icon-btn theme-toggle" onclick="toggleTheme()" title="Toggle Dark/Light Mode">
+                    <i id="theme-toggle-icon" class="fa-solid fa-moon"></i>
+                </button>
+                <a href="{{ url_for('auth.profile') }}" class="icon-btn" title="Profile Settings">
+                    <i class="fa-solid fa-gear"></i>
+                </a>
+                <a href="{{ url_for('auth.logout') }}" class="icon-btn text-danger" title="Logout">
+                    <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                </a>
+            </div>
+        </div>
+
+        <!-- Search Bar -->
+        <div class="sidebar-search">
+            <div class="search-input-wrapper">
+                <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                <input 
+                    type="text" 
+                    id="sidebar-search-input" 
+                    placeholder="Search chats, rooms, or people..." 
+                    autocomplete="off"
+                >
+                <button type="button" id="clear-search-btn" class="clear-search-btn hidden">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Sidebar Navigation Tabs -->
+        <div class="sidebar-tabs">
+            <button class="tab-btn active" data-tab="direct-chats" onclick="switchSidebarTab('direct-chats')">
+                <i class="fa-solid fa-user"></i>
+                <span>Direct</span>
+                <span class="tab-badge hidden" id="direct-unread-badge">0</span>
+            </button>
+            <button class="tab-btn" data-tab="rooms" onclick="switchSidebarTab('rooms')">
+                <i class="fa-solid fa-hashtag"></i>
+                <span>Rooms</span>
+            </button>
+            <button class="tab-btn" data-tab="directory" onclick="switchSidebarTab('directory')">
+                <i class="fa-solid fa-users"></i>
+                <span>People</span>
+            </button>
+        </div>
+
+        <!-- Quick Action Bar -->
+        <div class="sidebar-quick-bar">
+            <span class="section-label" id="tab-section-label">Direct Messages</span>
+            <div class="quick-action-btns">
+                <button class="quick-btn" onclick="openCreateRoomModal()" title="Create New Room">
+                    <i class="fa-solid fa-plus"></i> Room
+                </button>
+                <button class="quick-btn" onclick="openUsersModal()" title="Start New Conversation">
+                    <i class="fa-solid fa-message"></i> New Chat
+                </button>
+            </div>
+        </div>
+
+        <!-- Tab 1: Direct Messages List -->
+        <div class="conversation-list-container tab-content active" id="tab-direct-chats">
+            <div class="conversation-list" id="direct-chats-list">
+                <!-- Dynamically populated via JS -->
+                <div class="sidebar-loading">
+                    <i class="fa-solid fa-spinner fa-spin"></i> Loading conversations...
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 2: Chat Rooms List -->
+        <div class="conversation-list-container tab-content" id="tab-rooms">
+            <div class="conversation-list" id="rooms-list">
+                <!-- Dynamically populated via JS -->
+            </div>
+        </div>
+
+        <!-- Tab 3: People / Online Directory -->
+        <div class="conversation-list-container tab-content" id="tab-directory">
+            <div class="conversation-list" id="directory-list">
+                <!-- Dynamically populated via JS -->
+            </div>
+        </div>
+    </aside>
+
+    <!-- ==================== MAIN CHAT VIEW ==================== -->
+    <main class="chat-main" id="chat-main">
+        <!-- Empty State (Shown when no conversation is selected) -->
+        <div class="chat-empty-state" id="chat-empty-state">
+            <div class="empty-state-content animate-fade-in">
+                <div class="empty-icon-wrapper">
+                    <i class="fa-solid fa-comments"></i>
+                </div>
+                <h2>Your Conversations</h2>
+                <p>Select a direct chat from the sidebar, join a room, or explore other members to start messaging in real-time.</p>
+                <div class="empty-actions">
+                    <button class="btn btn-primary" onclick="openDefaultRoom()">
+                        <i class="fa-solid fa-hashtag"></i> Open General Room
+                    </button>
+                    <button class="btn btn-outline" onclick="openUsersModal()">
+                        <i class="fa-solid fa-user-plus"></i> Find People
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Active Chat Interface (Hidden by default, shown when chat selected) -->
+        <div class="chat-active-panel hidden" id="chat-active-panel">
+            <!-- Chat Header -->
+            <header class="chat-header">
+                <div class="chat-header-info">
+                    <button class="icon-btn mobile-menu-btn" onclick="toggleMobileSidebar()" title="Back to conversations">
+                        <i class="fa-solid fa-arrow-left"></i>
+                    </button>
+                    <div class="avatar-container" id="chat-header-avatar-wrap">
+                        <img src="" alt="" id="chat-header-avatar" class="user-avatar">
+                        <span class="status-indicator offline" id="chat-header-status-dot"></span>
+                    </div>
+                    <div class="header-titles">
+                        <h3 id="chat-header-title">Select a Chat</h3>
+                        <p id="chat-header-subtitle">
+                            <span id="chat-status-text">Offline</span>
+                        </p>
+                    </div>
+                </div>
+
+                <div class="chat-header-actions">
+                    <button class="icon-btn" onclick="refreshActiveChat()" title="Reload Messages">
+                        <i class="fa-solid fa-rotate-right"></i>
+                    </button>
+                    <button class="icon-btn" id="leave-room-header-btn" onclick="leaveCurrentRoom()" title="Leave Room" style="display: none;">
+                        <i class="fa-solid fa-right-from-bracket text-danger"></i>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Message Feed -->
+            <div class="messages-container" id="messages-container">
+                <div class="messages-feed" id="messages-feed">
+                    <!-- Dynamic message bubbles injected by chat.js -->
+                </div>
+            </div>
+
+            <!-- Live Typing Bar -->
+            <div class="typing-indicator-bar hidden" id="typing-indicator-bar">
+                <div class="typing-animation">
+                    <span></span><span></span><span></span>
+                </div>
+                <span id="typing-text-label">Someone is typing...</span>
+            </div>
+
+            <!-- Quick Emoji Bar -->
+            <div class="quick-emoji-drawer hidden" id="quick-emoji-drawer">
+                <button type="button" class="emoji-chip" onclick="insertEmoji('😀')">😀</button>
+                <button type="button" class="emoji-chip" onclick="insertEmoji('😂')">😂</button>
+                <button type="button" class="emoji-chip" onclick="insertEmoji('😍')">😍</button>
+                <button type="button" class="emoji-chip" onclick="insertEmoji('🔥')">🔥</button>
+                <button type="button" class="emoji-chip" onclick="insertEmoji('👍')">👍</button>
+                <button type="button" class="emoji-chip" onclick="insertEmoji('🎉')">🎉</button>
+                <button type="button" class="emoji-chip" onclick="insertEmoji('🚀')">🚀</button>
+                <button type="button" class="emoji-chip" onclick="insertEmoji('❤️')">❤️</button>
+                <button type="button" class="emoji-chip" onclick="insertEmoji('✨')">✨</button>
+                <button type="button" class="emoji-chip" onclick="insertEmoji('👋')">👋</button>
+            </div>
+
+            <!-- Message Input Footer -->
+            <footer class="chat-footer">
+                <form id="message-form" class="message-input-form" onsubmit="handleSendMessage(event)">
+                    <button type="button" class="icon-btn emoji-toggle-btn" onclick="toggleEmojiDrawer()" title="Insert Emoji">
+                        <i class="fa-regular fa-face-smile"></i>
+                    </button>
+
+                    <div class="input-field-wrapper">
+                        <textarea 
+                            id="message-input" 
+                            placeholder="Type a message... (Press Enter to send)" 
+                            rows="1" 
+                            autocomplete="off"
+                            required
+                        ></textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary send-btn" id="send-btn" title="Send message">
+                        <i class="fa-solid fa-paper-plane"></i>
+                    </button>
+                </form>
+            </footer>
+        </div>
+    </main>
+
+    <!-- ==================== MODALS ==================== -->
+
+    <!-- Modal 1: Create New Room -->
+    <div class="modal-overlay hidden" id="create-room-modal">
+        <div class="modal-card animate-scale-up">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-hashtag text-primary"></i> Create New Chat Room</h3>
+                <button type="button" class="modal-close" onclick="closeModal('create-room-modal')">&times;</button>
+            </div>
+            <form onsubmit="handleCreateRoomSubmit(event)" class="modal-body">
+                <div class="form-group">
+                    <label for="new-room-name">Room Name</label>
+                    <input 
+                        type="text" 
+                        id="new-room-name" 
+                        class="form-control" 
+                        placeholder="e.g. developers, design-sync, general" 
+                        required 
+                        minlength="3" 
+                        maxlength="50"
+                    >
+                    <small class="form-hint">Must be 3-50 characters.</small>
+                </div>
+                <div class="form-group">
+                    <label for="new-room-desc">Description (Optional)</label>
+                    <textarea 
+                        id="new-room-desc" 
+                        class="form-control" 
+                        rows="2" 
+                        placeholder="What is this channel about?"
+                        maxlength="200"
+                    ></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-ghost" onclick="closeModal('create-room-modal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-plus"></i> Create Channel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal 2: Find Users & New Direct Message -->
+    <div class="modal-overlay hidden" id="users-modal">
+        <div class="modal-card animate-scale-up">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-users text-primary"></i> Find People</h3>
+                <button type="button" class="modal-close" onclick="closeModal('users-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-search-wrap">
+                    <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                    <input 
+                        type="text" 
+                        id="user-modal-search" 
+                        placeholder="Search users by name or status..." 
+                        oninput="searchUsersModal(this.value)"
+                    >
+                </div>
+                <div class="modal-user-list" id="modal-user-list">
+                    <!-- Populated dynamically via JS -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-ghost" onclick="closeModal('users-modal')">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- Application JavaScript files -->
+<script src="{{ url_for('static', filename='js/socket.js') }}"></script>
+<script src="{{ url_for('static', filename='js/chat.js') }}"></script>
+{% endblock %}
