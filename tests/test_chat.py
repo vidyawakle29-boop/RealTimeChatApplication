@@ -1,20 +1,25 @@
+from flask import g
+
 import unittest
 from app import create_app
 from app.extensions import db, socketio
 from app.models import User, ChatRoom, RoomMember, Message
-
-
 class ChatTestCase(unittest.TestCase):
     """Test suite for Chat REST APIs and Real-Time Socket.IO communication."""
 
     def setUp(self):
         """Set up test app, database, and test clients."""
         self.app = create_app('testing')
+
+        def clear_login_user(exception=None):
+            g.pop('_login_user', None)
+
+        self.app.teardown_request(clear_login_user)
+                      
         self.app_context = self.app.app_context()
         self.app_context.push()
         db.create_all()
 
-        # Create two test users
         self.u1 = User(username='alice', email='alice@example.com')
         self.u1.set_password('password123')
         self.u2 = User(username='bob', email='bob@example.com')
@@ -22,12 +27,10 @@ class ChatTestCase(unittest.TestCase):
         db.session.add_all([self.u1, self.u2])
         db.session.commit()
 
-        # Create public room
         self.room = ChatRoom(room_name='General', description='General room', created_by=self.u1.id)
         db.session.add(self.room)
         db.session.commit()
 
-        # Add both to room
         db.session.add_all([
             RoomMember(room_id=self.room.id, user_id=self.u1.id),
             RoomMember(room_id=self.room.id, user_id=self.u2.id)
@@ -36,19 +39,16 @@ class ChatTestCase(unittest.TestCase):
 
         self.client1 = self.app.test_client(use_cookies=True)
         self.client2 = self.app.test_client(use_cookies=True)
-
-        # Log in client1 as Alice
         self.client1.post('/auth/login', data={'login_id': 'alice', 'password': 'password123'})
-        # Log in client2 as Bob
+        
         self.client2.post('/auth/login', data={'login_id': 'bob', 'password': 'password123'})
-
+    
     def tearDown(self):
         """Clean up test resources."""
         db.session.remove()
         db.drop_all()
         self.app_context.pop()
 
-    # ----------------- REST API Tests -----------------
 
     def test_api_users_search(self):
         """Test searching users excluding self."""
